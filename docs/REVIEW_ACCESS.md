@@ -1,10 +1,10 @@
 # Private repository and reviewer access
 
-The target repository is `Johnnyyuqi/OrganelleVista` and is intended to remain **private**. Local Git initialization does not create a GitHub repository; verify the remote URL and visibility after creation.
+The repository is [Johnnyyuqi/OrganelleVista](https://github.com/Johnnyyuqi/OrganelleVista). It has been created, pushed to `main`, and verified through GitHub as **private**. No reviewer invitations have been sent, and no online anonymous browsing link has been created. The local anonymous review ZIP is ready to inspect and submit.
 
-## Create the private GitHub repository
+## Repository setup reference
 
-After installing GitHub CLI and authenticating locally (do not paste a token into chat):
+The current repository already exists. The following commands document initial setup for a new deployment; do not rerun `gh repo create` for the existing repository. Authenticate locally, never by pasting a token into chat:
 
 ```bash
 gh auth login --hostname github.com
