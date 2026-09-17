@@ -6,13 +6,13 @@ Detailed behavior of the packaged code. See the [README](../README.md) for comma
 
 The observed environment uses Python 3.10, Torch 2.0.1+cu117, torchvision 0.15.2+cu117, diffusers 0.25.1, transformers 4.35.2, and Accelerate 1.1.1. `requirements.txt` records relevant dependency versions. `docs/environment-observed.txt` contains the full environment version snapshot without local installation URLs.
 
-To install the recorded dependencies into an appropriate Python environment, run this command from the release root:
+For new installations, follow the README: create an isolated Python 3.10 environment, install Torch 2.0.1 and torchvision 0.15.2 from the CUDA 11.8 index, then install `requirements.txt` from the repository root. The official build selection is documented in [PyTorch's previous-version instructions](https://pytorch.org/get-started/previous-versions/#v201). Installing the CUDA-specific Torch build first avoids leaving wheel selection implicit in the general dependency install.
 
-```bash
-python -m pip install --extra-index-url https://download.pytorch.org/whl/cu117 -r requirements.txt
-```
+The inspected xformers 0.0.22 metadata requires Torch 2.0.1; its native extension was built with Torch 2.0.1+cu118 / CUDA 11.8. The historical local environment instead runs Torch 2.0.1+cu117. The new instructions target matching CUDA 11.8 builds, but have not been tested in a fresh environment or on a GPU. They do not modify the existing local environment. The full observed environment snapshot is historical provenance, not a portable lockfile.
 
-This installation recipe has not been verified in a fresh environment. The observed xformers 0.0.22 build targets Torch 2.0.1/CUDA 11.8, while the observed Torch installation uses CUDA 11.7. Successful imports alone do not establish GPU-kernel compatibility. The launcher checks xformers forward and backward execution on both selected GPUs before training. On a new machine, use an xformers build compatible with its Torch/CUDA installation. The environment snapshot is not a cross-platform lockfile.
+A fresh `pip check` of the existing environment also reports `opencv-python-headless==4.13.0.92` requiring NumPy >=2 while NumPy 1.26.4 is installed. This headless OpenCV package is not directly pinned by the project's requirements; its presence in the shared environment is another reason not to treat that environment as a clean installation reference. The current task did not uninstall or upgrade those existing packages.
+
+Run `pip check`, all three entry points' `--help` commands, CUDA detection, and `python -m xformers.info` after installation. These checks must be followed by an actual short training run to validate GPU execution. The Step 2 launcher also tests xformers forward and backward execution on both selected GPUs.
 
 The training code loads `stabilityai/sd-turbo`, CLIP ViT-B/32, and LPIPS/VGG weights. First use requires downloads or existing caches. `--lambda_clipsim 0` does not remove CLIP from validation or from the GAN discriminator.
 

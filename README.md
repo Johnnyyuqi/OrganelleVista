@@ -11,24 +11,50 @@ Train a virtual-staining model in three stages, then generate images from a fold
 
 ## Setup
 
-Run all commands from the release directory in the existing environment:
+Prerequisites: Conda/Miniconda, Linux x86_64, and an NVIDIA GPU/driver compatible with the CUDA 11.8 PyTorch build. Training and inference call CUDA directly; CPU-only execution is not supported. Steps 1–2 below use two GPUs; Step 3 and inference use one. The DPO example also requires BF16 support.
+
+### First-time installation
+
+Download or clone the source, then create a new environment. The environment is **not** included in the repository.
 
 ```bash
-conda activate img2img-turbo
 cd /path/to/OrganelleVista
+conda create -n organellevista python=3.10 pip -y
+conda activate organellevista
 
-# Set these to your dataset and checkpoint roots.
+# Install a specific CUDA build before the remaining dependencies.
+python -m pip install torch==2.0.1 torchvision==0.15.2 \
+  --index-url https://download.pytorch.org/whl/cu118
+python -m pip install -r requirements.txt
+python -m pip check
+```
+
+This setup targets Python 3.10, Torch 2.0.1 / torchvision 0.15.2 with CUDA 11.8, and xformers 0.0.22. The CUDA selection follows [PyTorch's version-specific installation instructions](https://pytorch.org/get-started/previous-versions/#v201) and matches the inspected xformers build. It is a proposed clean-install configuration, **not yet a verified fresh-environment or GPU training result**. Dependencies for all stages, including local OpenAI CLIP and TensorBoard, are listed in [requirements.txt](requirements.txt); run installation from the repository root.
+
+### Check the environment
+
+```bash
+python src/train_pretrained_pix2pix_turbo.py --help
+python src/train_dpo_pix2pix_turbo.py --help
+python src/inference_simple_folder.py --help
+python -c "import torch; print('Torch:', torch.__version__, 'CUDA build:', torch.version.cuda); assert torch.cuda.is_available(), 'CUDA unavailable: check the NVIDIA driver and GPU access'"
+python -m xformers.info
+```
+
+Help commands check imports; CUDA detection and xformers information do not prove training works. Run the short training check described below after preparing data and weights. Resolve any `pip check` errors before training.
+
+### Later sessions and data paths
+
+```bash
+conda activate organellevista
+cd /path/to/OrganelleVista
 export DATA_ROOT=/path/to/data
 export MODEL_ROOT=/path/to/checkpoints
 ```
 
-CUDA, datasets, checkpoints, and pretrained SD-Turbo/CLIP/VGG weights are required. Weights must be cached for offline use. Dependency versions are in [requirements.txt](requirements.txt), including TensorBoard for DPO. To install them in a prepared Python 3.10 environment:
+Replace both paths with your real dataset and checkpoint roots. If reusing the author's existing environment, activate `img2img-turbo` instead; that name is a local choice, not a project requirement. Do not recreate or overwrite an existing environment merely to change its name.
 
-```bash
-python -m pip install --extra-index-url https://download.pytorch.org/whl/cu117 -r requirements.txt
-```
-
-A fresh installation and end-to-end GPU execution have not been validated. See [validation results](docs/VALIDATION.md) and [environment notes](docs/IMPLEMENTATION_NOTES.md#environment-and-pretrained-weights), including the observed Torch/xformers CUDA-version mismatch.
+Datasets and experiment checkpoints must be supplied separately. SD-Turbo/CLIP/VGG weights must be downloaded or cached before offline operation. See [environment notes](docs/IMPLEMENTATION_NOTES.md#environment-and-pretrained-weights) for the historical environment and [validation results](docs/VALIDATION.md) for what has actually been tested.
 
 ## Dataset layout
 

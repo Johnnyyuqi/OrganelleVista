@@ -73,3 +73,11 @@ Checks passed in the existing `img2img-turbo` environment:
 - Python syntax, English-text checks, and README shell-example syntax pass.
 
 CUDA was unavailable during these checks. The real checkpoint was not loaded into a model, and no GPU inference or generated image output was verified. These checks establish packaging, argument handling, dependency resolution, and input preprocessing, not end-to-end model correctness.
+
+## Setup documentation audit
+
+Checked all third-party imports in `src/` against `requirements.txt` and bundled CLIP. The dependency list covers those imports, and DPO's TensorBoard requirement is explicitly pinned. All three entry points' `--help` commands pass in the existing environment; README and implementation-note shell examples pass `bash -n`.
+
+Rewrote Setup to create a new `organellevista` Conda environment with Python 3.10 before activation and dependency installation. New-install instructions explicitly select the Torch 2.0.1 / torchvision 0.15.2 CUDA 11.8 wheels to match the inspected xformers 0.0.22 extension build. Existing `img2img-turbo` users can keep their environment; no installed packages were changed.
+
+The historical environment fails `pip check` because its opencv-python-headless 4.13.0.92 requires NumPy >=2, while NumPy 1.26.4 is installed. This conflict is documented instead of claiming a fully validated environment. A fresh Conda environment was not installed in this audit, and the proposed CUDA 11.8 recipe has not been tested end to end. GPU kernel and training validation remain outstanding.
