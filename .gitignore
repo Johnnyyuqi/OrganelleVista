@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+outputs/
+*.pt
+*.pth
+.env
+.local/
+
+# Local data, model artifacts, review exports, and credentials.
+data/
+datasets/
+checkpoints/
+review_exports/
+*.safetensors
+*.ckpt
+*.onnx
+*.zip
+*.tar
+*.tar.gz
+*.log
+.env.*
+*.pem
+*.key
+.DS_Store
