@@ -1,6 +1,6 @@
 # Private repository and reviewer access
 
-The source repository is intended to remain **private**. Local Git initialization does not create a GitHub repository; verify the remote URL and visibility after creation.
+The target repository is `Johnnyyuqi/OrganelleVista` and is intended to remain **private**. Local Git initialization does not create a GitHub repository; verify the remote URL and visibility after creation.
 
 ## Create the private GitHub repository
 
@@ -10,7 +10,7 @@ After installing GitHub CLI and authenticating locally (do not paste a token int
 gh auth login --hostname github.com
 cd /path/to/OrganelleVista
 # Set the GitHub user or organization that should own the repository.
-export REPO_OWNER=YOUR_GITHUB_USER_OR_ORG
+export REPO_OWNER=Johnnyyuqi
 gh repo create "$REPO_OWNER/OrganelleVista" --private --source=. --remote=origin --push
 gh repo view "$REPO_OWNER/OrganelleVista" --json nameWithOwner,url,isPrivate
 ```
