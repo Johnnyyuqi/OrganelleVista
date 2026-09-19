@@ -1,5 +1,22 @@
 # Validation record
 
+## Clean-environment and GPU validation
+
+A separate Python 3.10.21 Conda environment was created using the README recipe. The original `img2img-turbo` environment was unchanged. The final requirements pin setuptools 75.6.0 because fresh setuptools 84.0.0 lacks `pkg_resources`, which legacy dependencies import. Installed versions are recorded in [environment-validated.txt](environment-validated.txt).
+
+Checks passed on two NVIDIA RTX 4090 GPUs with driver 550.142:
+
+- `pip check`, all three entry-point help commands, and dependency imports.
+- Torch 2.0.1+cu118, torchvision 0.15.2+cu118, and xformers 0.0.22: FP32/BF16 attention forward/backward, BF16 convolution backward, CUDA NMS, and two-GPU NCCL all-reduce.
+- Step 1: two training steps on two GPUs, with skip connections disabled, xformers and gradient checkpointing enabled.
+- Step 2: the actual debug launcher loaded an existing SSL checkpoint and completed two training steps on two GPUs.
+- DPO: loaded an existing SFT checkpoint into policy/reference models; ran two short epochs with BF16, batch size 1, accumulation 16 and warmup 200; reached step 2 with finite logged losses. Checkpoint writing, one-sample evaluation and TensorBoard logging completed. The second step exercised a nonzero learning rate after the initial zero-rate warmup step.
+- Folder inference: loaded the SFT checkpoint and generated four 512×512 images.
+
+These tests used four synthetic image pairs/triplets and existing cached pretrained weights. DPO's partial accumulation window was flushed at each short epoch end. They verify execution, not convergence, biological accuracy, full-dataset performance, or all checkpoint/resume paths. SSL/SFT debug runs intentionally skip evaluation and checkpoint writing. Previously reviewed algorithmic issues remain outside this environment validation.
+
+Earlier CUDA failures below occurred in a restricted sandbox. The same machine's GPUs worked when accessed outside that restriction. Logs, test data, generated artifacts and the isolated environment remain under ignored `.local/`; they are not distributed.
+
 ## Packaging checks performed on 2026-09-16
 
 The following checks used the original machine's `img2img-turbo` Conda environment:

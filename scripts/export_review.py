@@ -20,7 +20,7 @@ files = []
 for relative in sorted(filter(None, paths)):
     path = ROOT / relative
     parts = Path(relative).parts
-    if relative in excluded or (parts[0] not in allowed_roots and relative not in allowed_files):
+    if relative in excluded or relative.startswith('docs/assets/') or (parts[0] not in allowed_roots and relative not in allowed_files):
         continue
     if '__pycache__' in parts or path.suffix in {'.pyc', '.pt', '.pth', '.safetensors', '.ckpt'}:
         continue
@@ -37,6 +37,12 @@ for relative in sorted(filter(None, paths)):
         for term in terms:
             text = text.replace(term, 'AnonymousVirtualStaining' if term == ROOT.name else 'ANONYMIZED')
         if relative == 'README.md':
+            # Exclude the public demo and its identifying repository links.
+            start = text.find('## System demo\n')
+            end = text.find('## Training workflow\n')
+            if start != -1 and end > start:
+                text = text[:start] + text[end:]
+            text = text.replace('[Demo](#system-demo) · ', '')
             text = '\n'.join(line for line in text.splitlines() if 'SOURCE_MANIFEST.json' not in line and 'docs/REVIEW_ACCESS.md' not in line) + '\n'
         if relative == 'docs/IMPLEMENTATION_NOTES.md':
             text = text.split('## Source provenance')[0]

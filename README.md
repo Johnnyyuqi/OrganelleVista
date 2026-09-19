@@ -1,5 +1,23 @@
 # OrganelleVista
 
+Virtual staining from brightfield microscopy to predicted fluorescence images.
+
+**Cell types:** 3T3 · HepaRG · HUVEC · Jump Cell · HFF
+
+[Demo](#system-demo) · [Setup](#setup) · [Datasets](#dataset-layout) · [Training](#training-workflow) · [Inference](#folder-inference)
+
+## System demo
+
+Select a cell type and target component, upload a brightfield image, and generate a predicted fluorescence image. The interface supports side-by-side inspection, brightness/contrast adjustment, and result download.
+
+[![OrganelleVista interface showing a brightfield input and its predicted fluorescence output](docs/assets/organellevista-demo.jpg)](docs/assets/organellevista-demo.mp4)
+
+**[Watch the demo video (1 min 45 sec)](docs/assets/organellevista-demo.mp4)** · [Download MP4](https://github.com/Johnnyyuqi/OrganelleVista/raw/refs/heads/main/docs/assets/organellevista-demo.mp4)
+
+The video demonstrates the system interface. This repository provides training and folder-inference code; a hosted interactive demo is not linked here.
+
+## Training workflow
+
 Train a virtual-staining model in three stages, then generate images from a folder.
 
 | Stage | Data | Entry point |
@@ -29,7 +47,7 @@ python -m pip install -r requirements.txt
 python -m pip check
 ```
 
-This setup targets Python 3.10, Torch 2.0.1 / torchvision 0.15.2 with CUDA 11.8, and xformers 0.0.22. The CUDA selection follows [PyTorch's version-specific installation instructions](https://pytorch.org/get-started/previous-versions/#v201) and matches the inspected xformers build. It is a proposed clean-install configuration, **not yet a verified fresh-environment or GPU training result**. Dependencies for all stages, including local OpenAI CLIP and TensorBoard, are listed in [requirements.txt](requirements.txt); run installation from the repository root.
+This setup was tested in a fresh Python 3.10 environment with Torch 2.0.1 / torchvision 0.15.2 (CUDA 11.8), xformers 0.0.22, and RTX 4090 GPUs. Dependency checks, short training runs, and folder inference passed; see the [validation record](docs/VALIDATION.md#clean-environment-and-gpu-validation) for scope and limitations. Run installation from the repository root. Keep the `setuptools` pin in [requirements.txt](requirements.txt): older dependencies require its `pkg_resources` module.
 
 ### Check the environment
 
@@ -205,10 +223,10 @@ Inference accepts full `full_scratch_v1` checkpoints or `model_state_dict` snaps
 ## Reference
 
 - [Implementation notes](docs/IMPLEMENTATION_NOTES.md): losses, model behavior, checkpoint formats, launcher options, and environment details.
-- [Validation record](docs/VALIDATION.md): completed checks and unverified GPU paths.
+- [Validation record](docs/VALIDATION.md): completed checks and remaining limitations.
 - CLI help: `bash scripts/train.sh --help` or `python src/<entry_point>.py --help`. DPO-specific options are listed above because its base help omits them.
 - [Source manifest](SOURCE_MANIFEST.json): original filenames and hashes, retained for provenance.
 
 Retain [LICENSE](LICENSE) and [CLIP's license](vendor/openai_clip/LICENSE). Model weights, third-party dependencies, and datasets have separate licenses; data and checkpoints are not included in this source release.
 
-Private-repository setup and anonymous review options: [reviewer access](docs/REVIEW_ACCESS.md).
+Repository visibility and anonymous review options: [reviewer access](docs/REVIEW_ACCESS.md).

@@ -1,6 +1,6 @@
 # Private repository and reviewer access
 
-The repository is [Johnnyyuqi/OrganelleVista](https://github.com/Johnnyyuqi/OrganelleVista). It has been created, pushed to `main`, and verified through GitHub as **private**. No reviewer invitations have been sent, and no online anonymous browsing link has been created. The local anonymous review ZIP is ready to inspect and submit.
+The repository is [Johnnyyuqi/OrganelleVista](https://github.com/Johnnyyuqi/OrganelleVista). It was initially created as private; GitHub reported it as **public on 2026-09-19** before the demo upload. The code and demo are publicly accessible and the repository URL identifies the owner. No reviewer invitations have been sent, and no online anonymous browsing link has been created. The source-only anonymous export excludes demo media and the README demo section.
 
 ## Repository setup reference
 
@@ -15,7 +15,7 @@ gh repo create "$REPO_OWNER/OrganelleVista" --private --source=. --remote=origin
 gh repo view "$REPO_OWNER/OrganelleVista" --json nameWithOwner,url,isPrivate
 ```
 
-The final check must report `isPrivate: true`. If a repository with this name already exists, inspect it before adding a remote or pushing. Do not make the source repository public for peer review.
+For a new private deployment, the final check must report `isPrivate: true`. The existing public repository does not satisfy that condition. Inspect existing repositories before adding a remote or pushing.
 
 ## Option A: anonymous review ZIP
 

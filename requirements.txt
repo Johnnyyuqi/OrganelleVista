@@ -1,4 +1,6 @@
 torch==2.0.1
+# Legacy gdown/vision-aided-loss import pkg_resources, removed in newer setuptools.
+setuptools==75.6.0
 torchvision==0.15.2
 accelerate==1.1.1
 transformers==4.35.2
