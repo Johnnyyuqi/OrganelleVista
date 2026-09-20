@@ -16,17 +16,6 @@ https://github.com/user-attachments/assets/5371ce5b-4097-495c-be08-50041810ac08
 
 The video demonstrates the system interface. This repository provides training and folder-inference code; a hosted interactive demo is not linked here.
 
-## Training workflow
-
-Train a virtual-staining model in three stages, then generate images from a folder.
-
-| Stage | Data | Entry point |
-| --- | --- | --- |
-| 1. Self-supervised learning | Brightfield → same brightfield image | `src/train_pretrained_pix2pix_turbo.py --train_from_scratch` |
-| 2. Supervised fine-tuning | Brightfield → fluorescence | `scripts/train.sh` |
-| 3. DPO alignment | Source + preferred/rejected targets | `src/train_dpo_pix2pix_turbo.py` |
-| Inference | Source images + prompts | `src/inference_simple_folder.py` |
-
 ## Setup
 
 Prerequisites: Conda/Miniconda, Linux x86_64, and an NVIDIA GPU/driver compatible with the CUDA 11.8 PyTorch build. Training and inference call CUDA directly; CPU-only execution is not supported. Steps 1–2 below use two GPUs; Step 3 and inference use one. The DPO example also requires BF16 support.
@@ -100,9 +89,33 @@ Prompt JSON files map filenames to text:
 
 For SSL without descriptive prompts, use empty strings. For reproductions, use the actual experiment prompts.
 
-## Step 1: Self-supervised learning
+## Training workflow
 
-Replace `/path/to/brightfield_ssl` with your SSL dataset. This example follows the Step 2 settings; it is not a record of historical SSL hyperparameters.
+Complete [Setup](#setup) and prepare the [datasets](#dataset-layout) first. Run the commands below from the repository root with your environment activated and `DATA_ROOT` / `MODEL_ROOT` set. Each stage has a complete command; filenames alone are not launch commands.
+
+| Stage and full command | Data | Initialization |
+| --- | --- | --- |
+| [1. Self-supervised learning](#step-1-self-supervised-learning) | Brightfield → same brightfield image | Add `--train_from_scratch`; omit `--resume_from` |
+| [2. Supervised fine-tuning](#step-2-supervised-fine-tuning) | Brightfield → fluorescence | Omit `--train_from_scratch`; load SSL weights with `--resume_from` |
+| [3. DPO alignment](#step-3-dpo-alignment) | Source + preferred/rejected targets | Load supervised weights with `--ref_model_path` |
+| [Inference](#folder-inference) | Source images + prompts | Load a full checkpoint with `--ckpt_path` |
+
+**Step 1 and Step 2 use the same Python training script.** The commands below use the same two-GPU launcher and shared hyperparameters. To start SSL, remove `--resume_from` and add `--train_from_scratch`; to start supervised fine-tuning, reverse those changes and supply the SSL checkpoint. Also change the dataset and output paths for each stage.
+
+| Behavior in the supplied code | Step 1 | Step 2 (from a full SSL checkpoint) |
+| --- | --- | --- |
+| Skip connections | Disabled automatically | Enabled automatically |
+| VAE encoder LoRA | Trainable | Trainable in the current implementation |
+| Training forward call | Noise input, `deterministic=False`, `r=0.8` | `deterministic=True` (VAE sampling can still vary) |
+| Starting weights | Pretrained SD-Turbo backbone, no experiment checkpoint | SSL checkpoint |
+
+Although some console messages say the Step 2 encoder is frozen, `train_encoder_lora=True` and `set_train()` keep encoder LoRA trainable in this branch.
+
+The `--train_from_scratch` name does **not** mean random initialization of the entire model. Both branches retain reconstruction and GAN training. The Step 1 settings below match Step 2 for comparison; they are not a record of historical SSL hyperparameters.
+
+### Step 1: Self-supervised learning
+
+Replace `/path/to/brightfield_ssl` with your SSL dataset. Select two available GPUs by changing `--gpu_ids 2,3` in both commands.
 
 ```bash
 accelerate launch \
@@ -114,6 +127,11 @@ accelerate launch \
   --output_dir outputs/heparg_ssl \
   --resolution 512 \
   --train_batch_size 1 \
+  --learning_rate 1e-5 \
+  --gradient_accumulation_steps 8 \
+  --lr_scheduler constant \
+  --max_train_steps 10000 \
+  --num_training_epochs 50 \
   --enable_xformers_memory_efficient_attention \
   --viz_freq 25 \
   --report_to None \
@@ -127,18 +145,25 @@ accelerate launch \
 
 For a two-step check, append `--debug_steps 2 --gradient_accumulation_steps 1` and use `--output_dir outputs/debug_ssl`. Use the direct command above: the Step 2 shell launcher requires a checkpoint.
 
-## Step 2: Supervised fine-tuning
+### Step 2: Supervised fine-tuning
 
 Load a Step 1 checkpoint and omit `--train_from_scratch` to enable skip connections. The example uses an existing SSL checkpoint; replace it with your own saved checkpoint when running the stages in sequence.
 
 ```bash
-bash scripts/train.sh \
+accelerate launch \
+  --config_file configs/accelerate_2gpu.yaml \
+  --multi_gpu --num_processes=2 --gpu_ids 2,3 \
+  src/train_pretrained_pix2pix_turbo.py \
   --dataset_folder "$DATA_ROOT/260612_wetlab_fix/20x/decrease_experiment/decrease_experiment_2" \
   --output_dir outputs/experiment_2 \
-  --gpu_ids 2,3 \
   --resume_from "$MODEL_ROOT/heparg_ssl/checkpoints/full_checkpoint_35841.pt" \
   --resolution 512 \
   --train_batch_size 1 \
+  --learning_rate 1e-5 \
+  --gradient_accumulation_steps 8 \
+  --lr_scheduler constant \
+  --max_train_steps 10000 \
+  --num_training_epochs 50 \
   --enable_xformers_memory_efficient_attention \
   --viz_freq 25 \
   --report_to None \
@@ -148,13 +173,13 @@ bash scripts/train.sh \
   --gradient_checkpointing
 ```
 
-The launcher checks prerequisites and starts two GPU processes. CLI values override its defaults; extra training arguments are forwarded to Python. For example, append `--learning_rate 1e-5 --max_train_steps 20000`. `--dataset` is an alias for `--dataset_folder`. Both xformers and gradient checkpointing are enabled by the launcher even if omitted from the command.
+**Optional checked launcher:** replace the `accelerate launch ... src/train_pretrained_pix2pix_turbo.py` prefix with `bash scripts/train.sh --gpu_ids 2,3`, keeping all subsequent training arguments. This wrapper checks data, checkpoint existence, and GPU kernels before starting the same entry point. It requires `--resume_from`, so use the direct Step 1 command for new SSL training. CLI values override wrapper defaults; extra training arguments are forwarded to Python. `--dataset` aliases `--dataset_folder`; xformers and gradient checkpointing are always enabled by the wrapper.
 
-For a two-step check, replace `scripts/train.sh` with `scripts/debug.sh` and use `--output_dir outputs/debug_experiment_2`. Success prints `Training stopped successfully at step 2.` The debug run skips evaluation and checkpoint writing.
+**Two-step check for either direct command:** append `--debug_steps 2 --gradient_accumulation_steps 1` and choose a separate debug output directory. For the Step 2 wrapper, use `scripts/debug.sh` instead of `scripts/train.sh`. Success prints `Training stopped successfully at step 2.` Debug runs skip evaluation and checkpoint writing.
 
-Steps 1–2 default to learning rate `1e-5`, gradient accumulation `8`, 10,000 synchronized steps, and at most 50 epochs. Checkpoints are written to `<output_dir>/checkpoints/`. Loading the SSL full checkpoint for Step 2 starts a new fine-tuning run, without restoring the old optimizer or step count.
+The commands explicitly retain the Steps 1–2 defaults: learning rate `1e-5`, gradient accumulation `8`, 10,000 synchronized steps, and at most 50 epochs. Checkpoints are written to `<output_dir>/checkpoints/`. Loading the SSL full checkpoint for Step 2 starts a new fine-tuning run, without restoring the old optimizer or step count.
 
-## Step 3: DPO alignment
+### Step 3: DPO alignment
 
 Prepare same-name triplets and paired evaluation data:
 
@@ -190,8 +215,28 @@ CUDA_VISIBLE_DEVICES=2 python src/train_dpo_pix2pix_turbo.py \
   --max_grad_norm 0.5 \
   --mixed_precision bf16 \
   --dataloader_num_workers 0 \
-  --seed 42
+  --seed 42 \
+  --num_training_epochs 50
 ```
+
+This command preserves every DPO option and value in the original experiment command. The packaged entry point is renamed to `src/train_dpo_pix2pix_turbo.py`; machine-specific paths use `DATA_ROOT` / `MODEL_ROOT`, and outputs are local to this repository. `CUDA_VISIBLE_DEVICES=2` makes GPU selection explicit. `--num_training_epochs 50` makes the existing default run length explicit; change it for your experiment.
+
+| Parameter | Value | Purpose |
+| --- | --- | --- |
+| `--train_method` | `dpo` | Select preference training |
+| `--pretrained_model_name_or_path` | `stabilityai/sd-turbo` | SD-Turbo model identifier |
+| `--ref_model_path` | Your supervised checkpoint | Initialize policy and frozen reference |
+| `--beta_dpo` | `0.02` | Scale the policy/reference preference logits |
+| `--dpo_latent_reward_weight` | `1.0` | Weight latent-space preference distances |
+| `--dpo_image_reward_weight` | `0.25` | Weight image-space preference distances |
+| `--dpo_anchor_weight` | `0.05` | Weight the preferred-target anchor loss |
+| `--learning_rate` | `5e-7` | Optimizer learning rate |
+| `--train_batch_size` / `--gradient_accumulation_steps` | `1` / `16` | Per-device batch size and accumulation window |
+| `--lr_scheduler` / `--lr_warmup_steps` | `constant_with_warmup` / `200` | Warmup followed by constant learning rate |
+| `--max_grad_norm` | `0.5` | Gradient clipping threshold |
+| `--mixed_precision` | `bf16` | BF16 mixed precision |
+| `--dataloader_num_workers` / `--seed` | `0` / `42` | Data loading workers and random seed |
+| `--num_training_epochs` | `50` | Epoch limit; reduce for a short run |
 
 This is a single-GPU run requiring BF16 support. Replace `--ref_model_path` with your Step 2 checkpoint; it initializes both policy and frozen reference models. To resume DPO, additionally pass `--resume_from /path/to/dpo_checkpoint.pt`, keeping the original Step 2 reference.
 

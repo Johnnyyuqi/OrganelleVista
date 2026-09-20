@@ -39,7 +39,7 @@ for relative in sorted(filter(None, paths)):
         if relative == 'README.md':
             # Exclude the public demo and its identifying repository links.
             start = text.find('## System demo\n')
-            end = text.find('## Training workflow\n')
+            end = text.find('\n## ', start + len('## System demo\n')) if start != -1 else -1
             if start != -1 and end > start:
                 text = text[:start] + text[end:]
             text = text.replace('[Demo](#system-demo) · ', '')
