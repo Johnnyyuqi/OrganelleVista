@@ -10,9 +10,9 @@ Virtual staining from brightfield microscopy to predicted fluorescence images.
 
 Select a cell type and target component, upload a brightfield image, and generate a predicted fluorescence image. The interface supports side-by-side inspection, brightness/contrast adjustment, and result download.
 
-[![OrganelleVista interface showing a brightfield input and its predicted fluorescence output](docs/assets/organellevista-demo.jpg)](docs/assets/organellevista-demo.mp4)
+https://github.com/user-attachments/assets/5371ce5b-4097-495c-be08-50041810ac08
 
-**[Watch the demo video (1 min 45 sec)](docs/assets/organellevista-demo.mp4)** · [Download MP4](https://github.com/Johnnyyuqi/OrganelleVista/raw/refs/heads/main/docs/assets/organellevista-demo.mp4)
+*Play the full 1 min 45 sec demo above.* · [Open video](https://github.com/user-attachments/assets/5371ce5b-4097-495c-be08-50041810ac08) · [Download original MP4](https://github.com/Johnnyyuqi/OrganelleVista/raw/refs/heads/main/docs/assets/organellevista-demo.mp4)
 
 The video demonstrates the system interface. This repository provides training and folder-inference code; a hosted interactive demo is not linked here.
 
